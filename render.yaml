@@ -1,0 +1,25 @@
+# Render service spec for menu-foods-store
+# This creates a Postgres database and a web service bound to it.
+# Review and update before applying (do NOT include real secrets here).
+
+databases:
+  - name: menu-foods-db
+    plan: starter
+
+services:
+  - type: web
+    name: menu-foods-store
+    env: python
+    branch: main
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn grocery.wsgi --bind 0.0.0.0:$PORT --log-file -"
+    databases:
+      - name: menu-foods-db
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "menu-foods-store.onrender.com"
+      - key: DJANGO_SECRET_KEY
+        secure: true

@@ -116,6 +116,50 @@ python manage.py test
 - Consider adding a `.env.example` and instructions for setting environment variables.
 - Add a short developer CONTRIBUTING or MAINTAINERS section if the project will accept contributions.
 
+## Deployment: Render.com
+
+This project includes configuration and instructions to deploy to Render (https://render.com).
+
+Files added to support Render:
+
+- `Procfile` — starts Gunicorn using the Django WSGI app.
+- `render.yaml` — infrastructure-as-code (creates a Web Service and a Postgres DB). Review before use.
+- `.env.example` — example environment variables (do not commit secrets).
+
+Quick steps to deploy on Render
+
+1. Push your branch to GitHub and connect the repository to Render.
+2. (Optional) If you want Render to provision the DB automatically, the included `render.yaml` will create a Postgres database and a web service when you deploy using Render's spec. Otherwise create a Postgres database from Render dashboard and copy the `DATABASE_URL`.
+3. In Render service settings set the following environment variables (do NOT commit these to the repo):
+
+   - `DJANGO_SECRET_KEY` — a secure secret key (set as a secret in Render).
+   - `DJANGO_DEBUG` — `False` in production.
+   - `DJANGO_ALLOWED_HOSTS` — `menu-foods-store.onrender.com` (or `*` for testing).
+   - `DATABASE_URL` — provided by Render Postgres (if not using `render.yaml`).
+   - Any other secrets your app needs (Stripe keys, OAuth client secrets, etc.).
+
+4. Build command (Render → Service → Settings → Build Command):
+
+```bash
+pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+```
+
+5. Start command (leave empty to use `Procfile`) or set explicitly:
+
+```bash
+gunicorn grocery.wsgi --bind 0.0.0.0:$PORT --log-file -
+```
+
+Notes
+
+- Static files are served with WhiteNoise — `collectstatic` must run during build. If product images or user uploads are required in production, configure object storage (S3 or Render Object Storage) and update `MEDIA_URL` and storage backend.
+- The `render.yaml` in this repo is a starting point; open it and replace any placeholders or sensitive values before using.
+
+Troubleshooting
+
+- If assets (CSS/images) are missing, ensure `python manage.py collectstatic --noinput` ran successfully during build and that `STATICFILES_STORAGE` is configured (`grocery/settings.py` uses WhiteNoise storage).
+- Ensure the Render start command uses the Django WSGI module (see `Procfile`). If you see `ModuleNotFoundError: No module named 'app'`, update the start command to point at `grocery.wsgi` as shown above.
+
 ---
 
 If you'd like, I can:
